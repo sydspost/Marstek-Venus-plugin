@@ -180,8 +180,8 @@ DEVSLIST={
     "es_offgrid_power": [31, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS off-grid power","ESS"], # duplicate ? note es_ added to name to create unique key
 #    "bat_power"      : "ES battery power W"], # not present in ES.getStatus response, although in specification ver 1.0
     "total_pv_energy"          : [32, 113,  0, 0, {}, 1   ,"ESS PV energy generated","ESS"],
-    "total_grid_output_energy" : [33, 113,  0, 0, {}, 1   ,"ESS Battery output energy","ESS"],
-    "total_grid_input_energy"  : [34, 113,  0, 0, {}, 1   ,"ESS Battery input energy","ESS"],
+    "total_grid_output_energy" : [33, 243,  29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS Battery output energy","ESS"],
+    "total_grid_input_energy"  : [34, 243,  29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS Battery input energy","ESS"],
     "total_load_energy"        : [35, 113,  0, 0, {}, 1   ,"ESS Off-grid energy used","ESS"],
 # response EM.GetStatus
     "ct_state"        : [36, 244, 73, 0, {}, 1,  "P1 CT state","EMS"],
@@ -205,6 +205,7 @@ DEVSLIST={
 # do not change name, used on onCommand code below
     "select Marstek mode"     : [50, 244, 62, 18, {"LevelActions":"|||||","LevelNames":"|AutoSelf|AI|Manual|Passive|UPS","LevelOffHidden":"true","SelectorStyle":"0"}, 1 ,"Select Marstek mode","SM"],
     "P1 meter"   : [51, 250,  1, 0, {}, 1 ,"P1 meter","EMS"], # new P1 device to hold EMS total_power, input_energy and output_energy
+    "Virt. Batterypower"   : [52, 243,  29, 0, {'EnergyMeterMode': '1'}, 1 ,"Virt. Batterypower","EMS"], # Calculated batterypower
 } # end of dictionary
 
 class MarstekPlugin:
@@ -550,6 +551,31 @@ class MarstekPlugin:
                                 Devices[DeviceID].Units[Unit].sValue=svalueString
                                 Devices[DeviceID].Units[Unit].nValue=0
                                 Devices[DeviceID].Units[Unit].Update()
+                                
+                    # combine 3 ESS values onto one Virt. Batterypower
+                    if source=="ESS":
+                        if DevName=="pv_power":
+                            self.savePvPower=int(response[Dev])
+                        if DevName=="es_ongrid_power":
+                            self.saveOngridPower=int(response[Dev])
+                        if DevName=="es_offgrid_power":
+                            self.saveOffgridPower=int(response[Dev])
+                            self.VirtBatPower=self.savePvPower - self.saveOngridPower - self.saveOffgridPower
+                            # this is last value of 3, so now it can be processed
+                            Unit=52 # fixed nr !!!
+                            DeviceID="{:04x}{:04x}".format(self.Hwid,Unit)
+                            Devices[DeviceID].Units[Unit].Refresh()
+                            if (Devices[DeviceID].Units[Unit].Used==1) : # only process if P1 is an active device
+                                if debug: Domoticz.Log("Updating Virt. Batterypower "+str(self.savePvPower)+" "+str(self.saveOngridPower)+" "+str(self.saveOffgridPower))
+                                if self.VirtBatPower>=0:
+                                    svalueString=str(self.VirtBatPower)
+                                else:
+                                    svalueString=str(-1*self.VirtBatPower)
+                                if debug: Domoticz.Log(svalueString)
+                                Devices[DeviceID].Units[Unit].sValue=svalueString
+                                Devices[DeviceID].Units[Unit].nValue=self.VirtBatPower
+                                Devices[DeviceID].Units[Unit].Update()
+
 
             else:
                 if debug: Domoticz.Log("not processing values "+source+" "+Dev+" "+str(response[Dev]))
