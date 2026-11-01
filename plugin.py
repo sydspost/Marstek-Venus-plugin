@@ -181,7 +181,7 @@ DEVSLIST={
 #    "bat_power"      : "ES battery power W"], # not present in ES.getStatus response, although in specification ver 1.0
     "total_pv_energy"          : [32, 113,  0, 0, {}, 1   ,"ESS PV energy generated","ESS"],
     "total_grid_output_energy" : [33, 243,  29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS Battery output energy","ESS"],
-    "total_grid_input_energy"  : [34, 243,  29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS Battery input energy","ESS"],
+    "total_grid_input_energy"  : [34, 243,  29, 4, {'EnergyMeterMode': '1'}, 1   ,"ESS Battery input energy","ESS"],
     "total_load_energy"        : [35, 113,  0, 0, {}, 1   ,"ESS Off-grid energy used","ESS"],
 # response EM.GetStatus
     "ct_state"        : [36, 244, 73, 0, {}, 1,  "P1 CT state","EMS"],
@@ -588,11 +588,11 @@ class MarstekPlugin:
         try:
             self.someResponseReceived=False
             #client = VenusAPIClient(ip=self.IPAddress, port=self.Port, timeout=5)
-            response=client.get_battery_status()
-            if debug: Domoticz.Log("battery status data received: "+str(response))
-            if response is not None:
-                self.someResponseReceived=True
-                self.processValues("BAT",response)
+            # response=client.get_battery_status()
+            # if debug: Domoticz.Log("battery status data received: "+str(response))
+            # if response is not None:
+            #     self.someResponseReceived=True
+            #     self.processValues("BAT",response)
 
             response=client.get_pv_status()
             if debug: Domoticz.Log("pv status data received: "+str(response))
